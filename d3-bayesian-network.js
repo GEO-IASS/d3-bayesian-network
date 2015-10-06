@@ -10,7 +10,7 @@
       []
     ])
   }
-  d3.bayesianNetwork = function(idOrNode, width, height) {
+  d3.bayesianNetwork = function(idOrNode, style, width, height) {
     var bbox = $(idOrNode)[0].getBoundingClientRect()
     width = typeof width !== 'undefined' ? width : bbox.width
     height = typeof height !== 'undefined' ? height : 1000
@@ -119,6 +119,65 @@
       })
       return table
     }
+
+    function barChartify(node, data) {
+      var barChart = node.append("g").data(data)
+      var container = barChart.append("g").selectAll("rect.container")
+        .data(function(nod) {
+          return [nod]
+        })
+        .enter()
+        .append("rect")
+        .attr("class", "container")
+        .attr("x", -47)
+        .attr("y", 15)
+        .attr("width", 94)
+        .attr("height", function(n) {
+          return 8 + n.states.length * 15
+        })
+        .attr("fill", "rgb(200, 200, 256)")
+        .attr("stroke-width", 3)
+        .attr("stroke", "rgb(100,100,128)")
+      var bars = barChart.selectAll("rect.bar")
+        .data(function(nod) {
+          return nod.marginalized.probabilities
+        })
+        .enter()
+        .append("rect")
+        .attr("class", "bar")
+        .attr("x", -20)
+        .attr("y", function(d, i) {
+          return 20 + i * 15
+        })
+        .attr("width", function(d, i) {
+          return +d * 40
+        })
+        .attr("height", 12)
+        .attr("fill", function(d, i) {
+          return "rgb(255, 255, " + (i * 10) + ")"
+        })
+
+      var texts = barChart.selectAll("text")
+        .data(function(nod) {
+          return nod.states
+        })
+        .enter()
+        .append("text")
+        .text(function(d) {
+          return d
+        })
+        .attr("text-anchor", "middle")
+        .attr("x", function(d, i) {
+          return 0
+        })
+        .attr("y", function(d, i) {
+          return i * 15 + 30
+        })
+        .attr("font-family", "sans-serif")
+        .attr("font-size", "11px")
+        .attr("fill", "black")
+      return barChart
+    }
     var color = d3.scale.category20()
     var force = d3.layout.force().charge(-10000).linkDistance(300).size([width, height])
     force.nodes(nodes).links(links).start()
@@ -207,7 +266,12 @@
       node.append("title").text(function(d) {
         return d.name;
       })
-      tabulate(node, ["name", "probability"], nodes)
+      if (style == "cpt") {
+        tabulate(node, ["name", "probability"], nodes)
+      } else {
+        barChartify(node, nodes)
+      }
+
 
       function tick() {
         edge.attr("d", function(d) {
